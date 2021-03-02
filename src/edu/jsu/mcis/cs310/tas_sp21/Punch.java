@@ -27,7 +27,7 @@ public class Punch {
         this.adjustedtimestamp = 0; 
         this.adjustmenttype = null;
     }
-
+   
     public int getId() {
         return id;
     }
@@ -87,7 +87,7 @@ public class Punch {
  
 
 
-
+     
     public String printOriginalTimestamp(){
         StringBuilder s = new StringBuilder();
         GregorianCalendar gc = new GregorianCalendar();
