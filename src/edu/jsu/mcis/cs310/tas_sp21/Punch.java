@@ -1,7 +1,5 @@
- 
- 
+  
 package edu.jsu.mcis.cs310.tas_sp21;
-
 
 import java.util.GregorianCalendar;
 import java.text.SimpleDateFormat;

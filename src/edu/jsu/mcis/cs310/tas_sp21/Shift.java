@@ -1,6 +1,6 @@
- package edu.jsu.mcis.cs310.tas_sp21;
+package edu.jsu.mcis.cs310.tas_sp21;
 
- import java.time.LocalTime;
+import java.time.LocalTime;
 
 public class Shift {
     
