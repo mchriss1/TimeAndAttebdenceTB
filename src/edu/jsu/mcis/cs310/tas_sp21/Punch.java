@@ -116,19 +116,15 @@ public class Punch {
                 
                 }
         /*if(punchtypeid==1){
-
             s.append("#").append(badgeid).append(" ");
             s.append("CLOCKED IN: ");
         }
         else if(punchtypeid==0)
         {
-
             s.append("#").append(badgeid).append(" ");
             s.append("CLOCKED OUT: ");
         }
-
         else if {
-
             s.append("#").append(badgeid).append(" ");
             s.append("TIMED OUT: ");
         }
@@ -141,4 +137,3 @@ public class Punch {
 
     }
 }
-
