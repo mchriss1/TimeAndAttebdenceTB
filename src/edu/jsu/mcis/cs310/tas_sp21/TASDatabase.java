@@ -1,7 +1,7 @@
-
-package edu.jsu.mcis.cs310.tas_sp21;
+ package edu.jsu.mcis.cs310.tas_sp21;
 
 import java.sql.*;
+ 
 import java.util.*;
 
 
@@ -12,11 +12,6 @@ public class TASDatabase {
         ResultSet resultset = null;
         ResultSetMetaData metadata = null;
         
-        String query; 
-        boolean theResults;
-        
-        int resultCount;
-        int colCount = 0;   //column count
         
 public TASDatabase(){
     
@@ -44,7 +39,15 @@ public TASDatabase(){
             System.err.println(e.toString());
         }
        
-          
+       finally {
+            
+            if (resultset != null) { try { resultset.close(); resultset = null; } catch (Exception e) {} }
+            
+            if (pstSelect != null) { try { pstSelect.close(); pstSelect = null; } catch (Exception e) {} }
+            
+            if (pstUpdate != null) { try { pstUpdate.close(); pstUpdate = null; } catch (Exception e) {} }
+            
+        }   
     }
    
 
@@ -52,161 +55,104 @@ public TASDatabase(){
  * Method for retrieving information about a single punch from the database.This method should then query the database, 
  retrieve the punch data from the database, populate a new Punch object,
  and then return this object to the caller.
-     * @param punchID
+     * @param punchid
      * @return 
  */
 
-    public Punch getPunch(int punchID) throws SQLException {
-       int id;
-       int terminalid;
-       String badgeid;
-       long originaltimestamp;
-       int punchtypeid;
+    public Punch getPunch(int punchid){
+        
+        try{
+            
+        // prepare statement
+        pstSelect = conn.prepareStatement("SELECT * FROM punch WHERE id = ?");
+        
+        //set params
+        pstSelect.setInt(1, punchid);
+        
+        //execute
+        pstSelect.execute();
+        resultset = pstSelect.getResultSet();
+        
+        //get results
+        resultset.first();
+        int punchId = resultset.getInt(1);
+        int punchTerminalID = resultset.getInt(2);
+        Badge punchBadge = new Badge(resultset.getString(3), "Description");
+        int punchTypeID = resultset.getInt(5);
+        
+        Punch p = new Punch(punchBadge, punchTerminalID, punchTypeID);
+        
+        // prepare statement to get timestamp
+        pstSelect = conn.prepareStatement("SELECT *, UNIX_TIMESTAMP(originaltimestamp) * 1000 AS ts FROM punch WHERE id = ?");
+        
+        //set params
+        pstSelect.setInt(1, punchid);
+        
+        //execute
+        pstSelect.execute();
+        resultset = pstSelect.getResultSet();
+        
+        //get results
+        resultset.first();
+        long punchOriginalTimestamp = resultset.getLong("ts");
+        
+        p.setOriginaltimestamp(punchOriginalTimestamp);
+        
+        
+        return p;
+        }
+        
+        catch(Exception e){
+            System.err.println("** getPunch: " + e.toString());
+        }
 
-       try {
-               query = "SELECT * FROM punch WHERE id = ?";
-               pstSelect = conn.prepareStatement(query);
-               int punch = 0;
-               pstSelect.setInt(1, punch);
-
-                System.out.println("Submitting Query ...");
-
-               theResults = pstSelect.execute();                
-               resultset = pstSelect.getResultSet();
-               metadata = resultset.getMetaData();
-               colCount = metadata.getColumnCount();
-
-               System.out.println("Getting Results ...");
-
-               while ( theResults || pstSelect.getUpdateCount() != -1 ) 
-               {
-                   if ( theResults ) 
-                   {  
-                       resultset = pstSelect.getResultSet();
-
-               while (resultset.next()){
-                           id = resultset.getInt("id");
-                           terminalid = resultset.getInt("terminalid");
-                           badgeid = resultset.getString("badgeid");
-                           originaltimestamp = resultset.getTimestamp("originaltimestamp").getTime();
-                           punchtypeid = resultset.getInt("punchtypeid");
-               }
-
-           } 
-                    else 
-                   {
-                       resultCount = pstSelect.getUpdateCount();  
-                       if ( resultCount == -1 ) 
-                       {
-                           break;
-                       }    
-                   }
-                   theResults = pstSelect.getMoreResults();
-               }
-           }
-           catch (Exception e) {
-               System.err.println(e.toString());   
-           }
-           finally {
-
-               if (resultset != null) { try { resultset.close(); resultset = null; 
-               } catch (Exception e) {} }
-
-               if (pstSelect != null) { try { pstSelect.close(); pstSelect = null; 
-               } catch (Exception e) {} }
-
-               if (pstUpdate != null) { try { pstUpdate.close(); pstUpdate = null; 
-               } catch (Exception e) {} }
-
-           }
-
-           return null;        
+        return null;
     }
-    
  
  /**
   * Method creating objects of the Badge class.
-  * @param badgeId
+  * @param badgeid
   * @return
   * @throws Exception 
   */
  
-    public Badge getBadge(String badgeId) throws Exception {
-        String id;
-        String description;
-        try
-           {        
-                query = "SELECT * FROM badge WHERE id = ?";
-                pstSelect = conn.prepareStatement(query);
-                String badge = null;
-                pstSelect.setString(1, badge);
+    public Badge getBadge(String badgeid){
+        try{
+            
+            // prepare statement
+            pstSelect = conn.prepareStatement("SELECT * FROM badge WHERE id = ?");
 
-                System.out.println("Submitting Query ...");
-                
-                theResults = pstSelect.execute();                
-                resultset = pstSelect.getResultSet();
-                metadata = resultset.getMetaData();
-                colCount = metadata.getColumnCount(); 
-                
-                 System.out.println("Getting Results ...");
-                
-            while ( theResults || pstSelect.getUpdateCount() != -1 ) 
-            {
-                if ( theResults ) 
-                {       
-                    resultset = pstSelect.getResultSet();
-                    
-                    while(resultset.next()) 
-                        {
-                            id = resultset.getString(1);
-                            description = resultset.getString(2);
-                        }
-                }
-                
-                else 
-                    {
-                        resultCount = pstSelect.getUpdateCount();  
-                        if ( resultCount == -1 ) 
-                        {
-                            break;
-                        }    
-                    }
+            //set params
+            pstSelect.setString(1, badgeid);
 
-                  theResults = pstSelect.getMoreResults();
-            }
+            //execute
+            pstSelect.execute();
+            resultset = pstSelect.getResultSet();
+            resultset.first();
+
+            //get results            resultset.first();
+
+            String idNum = resultset.getString(1);
+            String name = resultset.getString(2);
+
+            Badge b = new Badge(idNum, name);
+
+            return b;
         }
-        catch (Exception e) {
-            System.err.println(e.toString());   
+        
+        catch(Exception e){
+            System.err.println("** getBadge: " + e.toString());
         }
-        finally {
-            
-            if (resultset != null) { try { resultset.close(); resultset = null; 
-            } catch (Exception e) {} }
-            
-            if (pstSelect != null) { try { pstSelect.close(); pstSelect = null; 
-            } catch (Exception e) {} }
-            
-            if (pstUpdate != null) { try { pstUpdate.close(); pstUpdate = null; 
-            } catch (Exception e) {} }
-            
-        }
-            return null;
-         }  
+
+        return null;
         
- /**
-  * 
-  */
-    /* public Shift getShift(int shift)
-    {
-        
-        
-        
-        
-    }*/
+    }
+}
+
     
+    
+     
+  
     
   
-    }
-
-
-
+    
