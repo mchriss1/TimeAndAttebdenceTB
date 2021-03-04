@@ -19,7 +19,7 @@ public TASDatabase(){
             
             /* Identify the Server */
             
-            String server = ("jdbc:mysql://localhost/tas?autoReconnect=true&useSSL=false");
+            String server = ("jdbc:mysql://localhost:/tas?autoReconnect=true&useSSL=false");
             String username = "teamB";
             String password = "apple";
             System.out.println("Connecting to " + server + "...");
