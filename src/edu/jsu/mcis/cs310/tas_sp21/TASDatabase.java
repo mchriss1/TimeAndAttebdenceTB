@@ -6,6 +6,8 @@ import java.util.GregorianCalendar;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+ import java.text.SimpleDateFormat;
+ import java.util.Calendar;
 
 
 
@@ -16,6 +18,9 @@ public class TASDatabase {
         ResultSet resultset = null;
         ResultSetMetaData metadata = null;
         
+        boolean hasresults;
+        int columnCount = 0;
+
         
 public TASDatabase(){
     
@@ -306,10 +311,84 @@ public TASDatabase(){
 
    public ArrayList<Punch> getDailyPunchList(Badge badge, long ts){
         
-        //Santoshi 
+                ArrayList<Punch> list = new ArrayList<Punch>();
+        
+        GregorianCalendar calendar = new GregorianCalendar();
+        calendar.setTimeInMillis(ts);
+        
+        SimpleDateFormat format1 = new SimpleDateFormat("yyyy-MM-dd");
+        String date = format1.format(calendar.getTime());
+        calendar.add(Calendar.DATE,1);
+ 
+        int lastPunchType = 0;
+        
+        try{
+                       
+            pstSelect = conn.prepareStatement("SELECT id,terminalid,badgeid,originaltimestamp,"
+                    + "punchtypeid FROM tas.punch WHERE badgeid = '"
+                    + badge.getId() + "' AND originaltimestamp LIKE '%"
+                    + date + "%'");
+            
+ 
+            hasresults = pstSelect.execute();                
+            resultset = pstSelect.getResultSet();
+            metadata = resultset.getMetaData();
+            columnCount = metadata.getColumnCount(); 
+ 
+            System.out.println("Getting Results...");
+            resultset = pstSelect.getResultSet();                    
+                                      
+            for(int i = 1; i < columnCount; i++) {
+
+                if (resultset.isLast()) {
+                    lastPunchType = resultset.getInt(5);
+                    break;  
+
+                }
+
+                resultset.next();                       
+                list.add(new Punch(resultset.getInt("id")
+                        ,resultset.getInt("terminalid"),resultset.getString("badgeid")
+                        ,resultset.getTimestamp("originaltimestamp")
+                        ,resultset.getInt("punchtypeid")));
+
+            }
+            
+            
+        }
+        
+        catch (Exception e) {
+            
+            System.err.println(e.toString());
+            
+        }
+        
+        /*Closing other database objects*/
+        
+        finally {
+            
+            if (resultset != null) { try { resultset.close(); resultset = null; 
+            } catch (Exception e) {} }
+            
+            if (pstSelect != null) { try { pstSelect.close(); pstSelect = null; 
+            } catch (Exception e) {} }
+            
+            if (pstUpdate != null) { try { pstUpdate.close(); pstUpdate = null; 
+            } catch (Exception e) {} }
+            
+        }
+        
          
         
-    } 
+        return list;
+           
+        
+    }
+
+        
+         
+        
+    
      
   
    public void close() {
