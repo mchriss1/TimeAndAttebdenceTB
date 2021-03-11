@@ -5,6 +5,7 @@ import java.sql.Connection;
 import java.util.GregorianCalendar;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 
 
 
@@ -268,13 +269,47 @@ public TASDatabase(){
         String badgeID = p.getBadgeid();
         int terminalID = p.getTerminalid();
         int punchTypeID = p.getPunchtypeid();
-        
+        int punchid = 1;
         
         GregorianCalendar originalts = new GregorianCalendar();
         originalts.setTimeInMillis(p.getOriginaltimestamp());
         String originaltimestamp = (new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")).format(originalts.getTime());
 
- }
+        PreparedStatement pst;
+        String query;
+        ResultSet results;
+        
+        try {
+     
+            query = "INSERT INTO punch (terminalid, badgeid, originaltimestamp, punchtypeid) VALUES (?, ?, ?, ?)";
+  
+            pst = conn.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS);
+            pst.setInt(1, terminalID);
+            pst.setString(2, badgeID);
+            pst.setString(3, originaltimestamp);
+            pst.setInt(4, punchTypeID);
+            
+                        
+            pst.execute();
+            results = pst.getGeneratedKeys();
+            results.first();
+            return results.getInt(1);
+   
+        }
+        catch (Exception e) {
+            System.err.println("** insertPunch: " + e.toString());
+        }
+        
+        return punchid;
+    }
+     
+
+   public ArrayList<Punch> getDailyPunchList(Badge badge, long ts){
+        
+        //Santoshi 
+         
+        
+    } 
      
   
    public void close() {
