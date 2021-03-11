@@ -1,8 +1,11 @@
  package edu.jsu.mcis.cs310.tas_sp21;
 
 import java.sql.*;
- 
-import java.util.*;
+import java.sql.Connection;
+import java.util.GregorianCalendar;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+
 
 
 public class TASDatabase {
@@ -61,6 +64,10 @@ public TASDatabase(){
 
     public Punch getPunch(int punchid){
         
+        Timestamp originaltimestamp = null;
+        Punch p = null; 
+
+        
         try{
             
         // prepare statement
@@ -77,36 +84,20 @@ public TASDatabase(){
         resultset.first();
         int punchId = resultset.getInt(1);
         int punchTerminalID = resultset.getInt(2);
-        Badge punchBadge = new Badge(resultset.getString(3), "Description");
+        String punchBadge =resultset.getString(3);
         int punchTypeID = resultset.getInt(5);
+        originaltimestamp = resultset.getTimestamp(4);
+
         
-        Punch p = new Punch(punchBadge, punchTerminalID, punchTypeID);
+        p = new Punch(punchId,punchTerminalID,punchBadge, originaltimestamp, punchTypeID);
         
-        // prepare statement to get timestamp
-        pstSelect = conn.prepareStatement("SELECT *, UNIX_TIMESTAMP(originaltimestamp) * 1000 AS ts FROM punch WHERE id = ?");
-        
-        //set params
-        pstSelect.setInt(1, punchid);
-        
-        //execute
-        pstSelect.execute();
-        resultset = pstSelect.getResultSet();
-        
-        //get results
-        resultset.first();
-        long punchOriginalTimestamp = resultset.getLong("ts");
-        
-        p.setOriginaltimestamp(punchOriginalTimestamp);
-        
-        
-        return p;
+         
         }
-        
         catch(Exception e){
             System.err.println("** getPunch: " + e.toString());
         }
 
-        return null;
+        return p;
     }
  
  /**
@@ -209,16 +200,7 @@ public TASDatabase(){
         return null;
     }
     
-    public void close() {
-        
-        try{
-            
-            conn.close();
-        }
-        catch(Exception e){
-            System.err.println("** close: " + e.toString());
-        }
-    }
+ 
     
   //GET SHIFT BY BADGE 
   public Shift getShift(Badge badge){
@@ -280,10 +262,30 @@ public TASDatabase(){
 
         return null;
     }   
-}
 
+ public int insertPunch(Punch p) {   
+        
+        String badgeID = p.getBadgeid();
+        int terminalID = p.getTerminalid();
+        int punchTypeID = p.getPunchtypeid();
+        
+        
+        GregorianCalendar originalts = new GregorianCalendar();
+        originalts.setTimeInMillis(p.getOriginaltimestamp());
+        String originaltimestamp = (new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")).format(originalts.getTime());
+
+ }
      
   
-    
-  
+   public void close() {
+        
+        try{
+            
+            conn.close();
+        }
+        catch(Exception e){
+            System.err.println("** close: " + e.toString());
+        }
+    }
+}
     

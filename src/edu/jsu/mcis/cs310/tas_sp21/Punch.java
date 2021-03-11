@@ -3,6 +3,7 @@ package edu.jsu.mcis.cs310.tas_sp21;
 
 import java.util.GregorianCalendar;
 import java.text.SimpleDateFormat;
+import java.sql.Timestamp;
 
 
 public class Punch {	
@@ -15,13 +16,26 @@ public class Punch {
     private int punchtypeid;
     private String adjustmenttype;
     private long adjustedtimestamp;
+    
+    
+    public Punch (int id, int terminalid, String badgeid,
+            Timestamp originaltimestamp, int punchtypeid) {
+    
+        if(id >= 0){this.id = id;}
+        this.terminalid = terminalid;
+        this.badgeid = badgeid;
+        this.originaltimestamp = originaltimestamp.getTime();
+        this.punchtypeid = punchtypeid;
+        
+    }
+
 
     public Punch(Badge badge, int terminalid, int punchtypeid) {
         this.badgeid = badge.getId();
         this.terminalid = terminalid;
         this.punchtypeid = punchtypeid;
         this.id = 0;
-        this.originaltimestamp = 0;
+        this.originaltimestamp = System.currentTimeMillis();
         this.adjustedtimestamp = 0; 
         this.adjustmenttype = null;
     }
@@ -66,25 +80,7 @@ public class Punch {
         this.punchtypeid = punchtypeid;
     }
 
-    public String getAdjustmenttype() {
-        return adjustmenttype;
-    }
-
-    public void setAdjustmenttype(String adjustmenttype) {
-        this.adjustmenttype = adjustmenttype;
-    }
-
-    public long getAdjustedtimestamp() {
-        return adjustedtimestamp;
-    }
-
-    public void setAdjustedtimestamp(long adjustedtimestamp) {
-        this.adjustedtimestamp = adjustedtimestamp;
-    }
-
- 
-
-
+  
      
     public String printOriginalTimestamp(){
         StringBuilder s = new StringBuilder();
@@ -134,4 +130,22 @@ public class Punch {
         return (s.toString().toUpperCase());
 
     }
+    
+    
+    public String getAdjustmenttype() {
+        return adjustmenttype;
+    }
+
+    public void setAdjustmenttype(String adjustmenttype) {
+        this.adjustmenttype = adjustmenttype;
+    }
+
+    public long getAdjustedtimestamp() {
+        return adjustedtimestamp;
+    }
+
+    public void setAdjustedtimestamp(long adjustedtimestamp) {
+        this.adjustedtimestamp = adjustedtimestamp;
+    }
+
 }
