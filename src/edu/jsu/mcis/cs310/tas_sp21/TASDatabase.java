@@ -4,10 +4,9 @@ import java.sql.*;
 import java.sql.Connection;
 import java.util.GregorianCalendar;
 import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
- import java.text.SimpleDateFormat;
- import java.util.Calendar;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 
 
 
@@ -385,10 +384,6 @@ public TASDatabase(){
         
     }
 
-        
-         
-        
-    
      
   
    public void close() {
