@@ -15,7 +15,7 @@ public class Punch {
     private long originaltimestamp;
     private int punchtypeid;
     private String adjustmenttype;
-    private long adjustedtimestamp;
+    private String adjustedtimestamp;
     
     
     public Punch (int id, int terminalid, String badgeid,
@@ -132,20 +132,41 @@ public class Punch {
     }
     
     
-    public String getAdjustmenttype() {
-        return adjustmenttype;
-    }
+    public String adjustTimestamp(GregorianCalendar gc, String adjustment)
+    {
+        StringBuilder sb = new StringBuilder();
+        SimpleDateFormat sdf = new SimpleDateFormat("EEE MM/dd/yyyy HH:mm:ss");
+        
+        sb.append("#").append(badgeid);
 
-    public void setAdjustmenttype(String adjustmenttype) {
-        this.adjustmenttype = adjustmenttype;
-    }
+        switch (punchtypeid) {
+            case 0:
+                sb.append(" CLOCKED OUT: ");
+                break;
+            case 1:
+                sb.append(" CLOCKED IN: ");
+                break;
+            case 2:
+                sb.append(" TIMED OUT: ");
+                break;
+            default:
+                sb.append(" ERROR ");
+                break;
+        }
+        
+        String s = sdf.format(gc.getTime()).toUpperCase();
+        sb.append(s);
+        sb.append(" ").append(adjustment);
 
-    public long getAdjustedtimestamp() {
-        return adjustedtimestamp;
+        return (sb.toString());
     }
-
-    public void setAdjustedtimestamp(long adjustedtimestamp) {
+    
+    public void setAdjustedTimestamp(String adjustedtimestamp) {
         this.adjustedtimestamp = adjustedtimestamp;
+    }
+    
+    public String printAdjustedTimestamp() {
+        return adjustedtimestamp;
     }
 
 }
