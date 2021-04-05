@@ -72,10 +72,26 @@ public class Shift {
         return shiftLunchStart;
     }
     
+    public int getLunchStartHour(){
+        return getShiftLunchStart().getHour();
+    }
+    
+    public int getLunchStartMin(){
+        return getShiftLunchStart().getMinute();
+    }
+
     public LocalTime getShiftLunchStop() {
         return shiftLunchStop;
     }
     
+    public int getLunchStopHour(){
+        return getShiftLunchStop().getHour();
+    }
+    
+    public int getLunchStopMin(){
+        return getShiftLunchStop().getMinute();
+    }
+
     public int getShiftLunchDeduct() {
         return shiftLunchDeduct;
     }
