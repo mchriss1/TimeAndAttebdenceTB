@@ -388,16 +388,17 @@ public class Punch {
     }
 
     
-    private int roundDown(int a, int b) 
+        private int roundDown(int a, int b) 
     {
-        
-        //Add code
+        return a>= 0 ? (a/ b) * b : ((a - b + 1) / b) * b;
     }
     
     private int roundUp(int a, int b) 
     {
-         //Add code
-    }           
+        return a>= 0 ? ((a + b - 1) / b) * b : (a / b) * b;
+       
+}
+    
 }
     
     
