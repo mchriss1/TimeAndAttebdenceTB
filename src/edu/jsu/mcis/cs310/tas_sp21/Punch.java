@@ -5,6 +5,7 @@ import java.util.GregorianCalendar;
 import java.text.SimpleDateFormat;
 import java.sql.Timestamp;
 import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.util.Calendar;
 
 
@@ -14,10 +15,10 @@ public class Punch {
     private int id;
     private int terminalid;
     private String badgeid;
-    private long originaltimestamp;
+    private Timestamp originaltimestamp;
     private int punchtypeid;
     private String adjustmenttype;
-    private String adjustedtimestamp;
+    private Timestamp adjustedtimestamp;
     
     
     public Punch (int id, int terminalid, String badgeid,
@@ -26,7 +27,7 @@ public class Punch {
         if(id >= 0){this.id = id;}
         this.terminalid = terminalid;
         this.badgeid = badgeid;
-        this.originaltimestamp = originaltimestamp.getTime();
+        this.originaltimestamp = originaltimestamp;
         this.punchtypeid = punchtypeid;
         
     }
@@ -37,7 +38,7 @@ public class Punch {
         this.terminalid = terminalid;
         this.punchtypeid = punchtypeid;
         this.id = 0;
-        this.originaltimestamp = System.currentTimeMillis();
+        this.originaltimestamp = new Timestamp(new GregorianCalendar().getTimeInMillis());
         this.adjustedtimestamp = null; 
         this.adjustmenttype = null;
     }
@@ -67,13 +68,13 @@ public class Punch {
     }
 
     public long getOriginaltimestamp() {
+        return originaltimestamp.getTime();
+    }
+
+    public Timestamp getOriginaltimestamp2() {
         return originaltimestamp;
     }
-
-    public void setOriginaltimestamp(long originaltimestamp) {
-        this.originaltimestamp = originaltimestamp;
-    }
-
+ 
     public int getPunchtypeid() {
         return punchtypeid;
     }
@@ -82,12 +83,15 @@ public class Punch {
         this.punchtypeid = punchtypeid;
     }
 
-  
+    public Timestamp getAdjustedTimeStamp() {
+        return adjustedtimestamp;
+    }
+
      
     public String printOriginalTimestamp(){
         StringBuilder s = new StringBuilder();
         GregorianCalendar gc = new GregorianCalendar();
-        gc.setTimeInMillis(originaltimestamp);
+        gc.setTimeInMillis(originaltimestamp.getTime());
         SimpleDateFormat sdf = new SimpleDateFormat("EEE MM/dd/yyyy HH:mm:ss");
 
         switch(punchtypeid){
@@ -120,287 +124,371 @@ public class Punch {
     }
     
     
-    public String adjustTimestamp(GregorianCalendar gc, String adjustment)
-    {
-        StringBuilder sb = new StringBuilder();
-        SimpleDateFormat sdf = new SimpleDateFormat("EEE MM/dd/yyyy HH:mm:ss");
+     public String printAdjustedTimestamp() {
+        String sb = "";
+        GregorianCalendar gc = new GregorianCalendar();
+        gc.setTimeInMillis(adjustedtimestamp.getTime());
         
-        sb.append("#").append(badgeid);
-
-        switch (punchtypeid) {
+        switch(this.punchtypeid){
             case 0:
-                sb.append(" CLOCKED OUT: ");
+                sb = "CLOCKED OUT:";
                 break;
             case 1:
-                sb.append(" CLOCKED IN: ");
+                sb = "CLOCKED IN:";
                 break;
             case 2:
-                sb.append(" TIMED OUT: ");
+                sb = "TIMED OUT:";
                 break;
-            default:
-                sb.append(" ERROR ");
-                break;
-        }
+          
+        }   
         
-        String s = sdf.format(gc.getTime()).toUpperCase();
-        sb.append(s);
-        sb.append(" ").append(adjustment);
+        String pattern = "EEE MM/dd/yyyy HH:mm:ss";
+        SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+        String formattedDate = sdf.format(gc.getTime()).toUpperCase();
 
-        return (sb.toString());
+        String output = "#" + getBadgeid() + " " + sb + " " + formattedDate + " (" + adjustmenttype + ")";
+            
+        return output;
     }
+
     
-    public void setAdjustedTimestamp(String adjustedtimestamp) {
-        this.adjustedtimestamp = adjustedtimestamp;
-    }
-    
-    public String printAdjustedTimestamp() {
-        return adjustedtimestamp;
-    }
-    
-    
-    
-    
-        public void adjust (Shift s)
-    {
-        GregorianCalendar gc = new GregorianCalendar();
-        gc.setTimeInMillis(originaltimestamp);
-        LocalTime ltime = LocalTime.of(gc.get(Calendar.HOUR_OF_DAY), gc.get(Calendar.MINUTE), gc.get(Calendar.SECOND));
+        public void adjust(Shift s){
         
         LocalTime shiftStart = s.getShiftStart();
         LocalTime shiftStop = s.getShiftStop();
-        long interval = s.getShiftInterval();
-        long intervalReturn = gc.get(Calendar.MINUTE) % interval;
         LocalTime lunchStart = s.getShiftLunchStart();
         LocalTime lunchStop = s.getShiftLunchStop();
         
-        System.out.println(ltime.toString());       
+        int grace  = s.getShiftGrace();
+        int interval = s.getShiftInterval();
+        int dock = s.getShiftDock();
+         
         
-        switch (punchtypeid) {
-            // Clock Out //
+        LocalDateTime punchTimeStamp = originaltimestamp.toLocalDateTime();
+        LocalTime punchTime = punchTimeStamp.toLocalTime();
+         
+        int totalpunchTimeMinutes = punchTime.getMinute() + (punchTime.getHour()*60);
+        int totalshiftStopMinutes = shiftStop.getMinute() + (punchTime.getHour()*60);
+        int totalshiftStartMinutes = shiftStart.getMinute() + (shiftStart.getHour()*60);
+        boolean weekend =  (punchTimeStamp.getDayOfWeek().toString().equals("SATURDAY") || 
+                punchTimeStamp.getDayOfWeek().toString().equals("SUNDAY") );
+        
+        adjustedtimestamp = Timestamp.valueOf(punchTimeStamp);
+        
+        switch(this.punchtypeid){
+            
             case 0:
-                // Weekend Check //
-                if (gc.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY || gc.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY)
-                {
-                    int adjusted = intervalRound();
-                    gc.set(Calendar.SECOND, 0);
-                    gc.set (Calendar.MINUTE, adjusted);
-                    
-                    setAdjustedTimestamp(adjustTimestamp(gc, adjustmenttype));
-                }
                 
-                else if (ltime.isAfter(shiftStop.minusSeconds(1)) && ltime.isBefore(shiftStop.plusMinutes(interval).plusSeconds(1)))
-                {
-                    gc.set(Calendar.HOUR_OF_DAY, s.getShiftStopHour());
-                    gc.set(Calendar.MINUTE, s.getShiftStopMin());
-                    gc.set(Calendar.SECOND, 0);
-
-                    adjustmenttype = ("(Shift Stop)");
-                    setAdjustedTimestamp(adjustTimestamp(gc, adjustmenttype));
-                }
-                
-                else if (ltime.isBefore(lunchStop.plusSeconds(1)) && ltime.isAfter(lunchStart.minusSeconds(1)))
-                {
-                    gc.set(Calendar.HOUR_OF_DAY, s.getLunchStartHour());
-                    gc.set(Calendar.MINUTE, s.getLunchStartMin());
-                    gc.set(Calendar.SECOND, 0);
-                        
-                    adjustmenttype = ("(Lunch Start)");
-                    setAdjustedTimestamp(adjustTimestamp(gc, adjustmenttype));
-                }
-                
-                else if (ltime.isBefore(shiftStop) && ltime.isAfter(shiftStop.minusMinutes(15).minusSeconds(1)))
-                {
-                    if (ltime.isAfter(shiftStop.minusMinutes(5).minusSeconds(1)))
-                    {
-                        // Grace //
-                        int adjusted = grace(shiftStart, shiftStop);
-                        gc.set(Calendar.SECOND, 0);
-                        gc.set (Calendar.MINUTE, adjusted);
-                        
-                        setAdjustedTimestamp(adjustTimestamp(gc, adjustmenttype));
-                    }
-                    else
-                    {
-                        // Dock //
-                        gc.set(Calendar.SECOND, 0);
-                        gc.set (Calendar.MINUTE, s.getShiftStopMin());
-                        gc.add(Calendar.MINUTE, -15);
-                        
-                        adjustmenttype = ("(Shift Dock)");
-                        setAdjustedTimestamp(adjustTimestamp(gc, adjustmenttype));
-                    }
-                }
-                
-                else
-                {
-                    // None //
-                    if (intervalReturn == 0)
-                    {
-                        gc.set(Calendar.SECOND, 0);
-                        adjustmenttype = ("(None)");
-                        setAdjustedTimestamp(adjustTimestamp(gc, adjustmenttype));
+                //If punch is clock out for lunch break (checks)
+           
+                if( punchTime.isAfter(shiftStart) && punchTime.isBefore(lunchStop) && (!weekend) ) {
+                  
+                    if( punchTime.isAfter(lunchStart) && punchTime.isBefore(lunchStop)) {
+                        adjustmenttype = "Lunch Start";
+                        adjustedtimestamp = Timestamp2(punchTimeStamp, lunchStart);                       
                     }
                     
-                    // Interval Round //
-                    else
-                    {
-                        int adjusted = intervalRound();
-                        gc.set(Calendar.SECOND, 0);
-                        gc.set (Calendar.MINUTE, adjusted);
-
-                        setAdjustedTimestamp(adjustTimestamp(gc, adjustmenttype));
-                    }
                 }
+                
+                else if(weekend) {
+                    
+                    if(punchTime.isBefore(shiftStop) ) {
+                        
+                        if( (totalshiftStopMinutes - totalpunchTimeMinutes) <= grace  ) {
+                            adjustmenttype = "Shift Stop";
+                            adjustedtimestamp = Timestamp2(punchTimeStamp, shiftStop);
+                        }
+                        
+                        else if ( (totalshiftStopMinutes - totalpunchTimeMinutes) > grace  && 
+                                (totalshiftStopMinutes - totalpunchTimeMinutes) <= dock ) {
+                            adjustmenttype = "Shift Dock";
+                            totalshiftStopMinutes = totalshiftStopMinutes - dock;
+                            adjustedtimestamp = Timestamp1(punchTimeStamp, totalshiftStopMinutes);  
+                        }
+                        
+                        else {
+                            adjustmenttype = "Interval Round";
+                            int timeInterval = totalshiftStopMinutes - totalpunchTimeMinutes;
+                            int quotient = timeInterval/interval;
+                            int remainder = timeInterval%interval;
+                            if(remainder <= 8) {
+                                totalshiftStopMinutes = totalshiftStopMinutes - (quotient*interval);
+                                adjustedtimestamp = Timestamp1(punchTimeStamp, totalshiftStopMinutes);
+                            }
+                            else {
+                                totalshiftStopMinutes = totalshiftStopMinutes - ((quotient+1)*interval);
+                                adjustedtimestamp = Timestamp1(punchTimeStamp, totalshiftStopMinutes);
+                            }
+                        }
+                    }
+                    
+                    else if(punchTime.isAfter(shiftStop) ) { 
+                        
+                        int timeInterval = totalpunchTimeMinutes - totalshiftStopMinutes;
+                        int quotient = timeInterval/interval;
+                        int remainder = timeInterval%interval;
+                        
+                        if(timeInterval <= interval) {
+                            
+                            if( (remainder == 0) && punchTime.getSecond() < 60) {
+                                adjustmenttype = "None";
+                            }
+                            else {
+                                adjustmenttype = "Shift Stop";
+                            }
+                            totalpunchTimeMinutes = totalpunchTimeMinutes - (quotient*interval);
+                            adjustedtimestamp = Timestamp1(punchTimeStamp, totalshiftStopMinutes);
+                        }
+                        else {
+                            adjustmenttype = "Interval Round";
+                            totalpunchTimeMinutes = totalpunchTimeMinutes - ((quotient+1)*interval);
+                            adjustedtimestamp = Timestamp1(punchTimeStamp, totalpunchTimeMinutes);
+                        }
+                        
+                    }
+
+                }
+                
+                
+                //If the punch is clock out for the shift end
+                
+                else if ( punchTime.isAfter(lunchStop) && (!weekend) ) {
+                    
+                    //Before the shift stop
+                    
+                    if(punchTime.isBefore(shiftStop) ) {
+                        
+                        if( (totalshiftStopMinutes - totalpunchTimeMinutes) <= grace  ) {
+                            adjustmenttype = "Shift Stop";
+                            adjustedtimestamp = Timestamp2(punchTimeStamp, shiftStop);
+                        }
+                        
+                        else if ( (totalshiftStopMinutes - totalpunchTimeMinutes) > grace  && 
+                                (totalshiftStopMinutes - totalpunchTimeMinutes) <= dock ) {
+                            adjustmenttype = "Shift Dock";
+                            totalshiftStopMinutes = totalshiftStopMinutes - dock;
+                            adjustedtimestamp = Timestamp1(punchTimeStamp, totalshiftStopMinutes);
+                        }
+                        
+                        else {
+                            adjustmenttype = "Interval Round";
+                            int timeInterval = totalshiftStopMinutes - totalpunchTimeMinutes;
+                            int quotient = timeInterval/interval;
+                            int remainder = timeInterval%interval;
+                            if(remainder <= 8) {
+                                totalshiftStopMinutes = totalshiftStopMinutes - (quotient*interval);
+                                adjustedtimestamp = Timestamp1(punchTimeStamp, totalshiftStopMinutes);
+                            }
+                            else {
+                                totalshiftStopMinutes = totalshiftStopMinutes - ((quotient+1)*interval);
+                                adjustedtimestamp = Timestamp1(punchTimeStamp, totalshiftStopMinutes);
+                            }
+               
+                        }
+                        
+                    }
+                    
+                    //After the shift stop
+                    
+                    else if( punchTime.isAfter(shiftStop) && (!weekend) ) {
+                        
+                        int timeInterval = totalpunchTimeMinutes - totalshiftStopMinutes;
+                        int quotient = timeInterval/interval;
+                        int remainder = timeInterval%interval;
+                        
+                        if(timeInterval <= interval) {
+                            
+                            if( (remainder == 0) && punchTime.getSecond() < 60) {
+                                adjustmenttype = "None";
+                            }
+                            else {
+                                adjustmenttype = "Shift Stop";
+                            }
+                            totalpunchTimeMinutes = totalpunchTimeMinutes - (quotient*interval);
+                            adjustedtimestamp = Timestamp1(punchTimeStamp, totalshiftStopMinutes);
+                        }
+                        else {
+                            adjustmenttype = "Interval Round";
+                            totalpunchTimeMinutes = totalpunchTimeMinutes - ((quotient+1)*interval);
+                            adjustedtimestamp = Timestamp1(punchTimeStamp, totalpunchTimeMinutes);
+                        }
+                        
+                    }
+                                       
+                }
+                
                 break;
-                                
-            // Clock In //
+                
+                
             case 1:
                 
-             // Weekend Check //
-                if (gc.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY || gc.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY)
-                {
-                    int adjusted = intervalRound();
-                    gc.set(Calendar.SECOND, 0);
-                    gc.set (Calendar.MINUTE, adjusted);
-                    
-                    setAdjustedTimestamp(adjustTimestamp(gc, adjustmenttype));
-                }
+                // If punch is clock in for lunch stop
                 
-                else if (ltime.isBefore(shiftStart.plusSeconds(1)) && ltime.isAfter(shiftStart.minusMinutes(interval).minusSeconds(1)))
-                {
-                    gc.set(Calendar.HOUR_OF_DAY, s.getShiftStartHour());
-                    gc.set(Calendar.MINUTE, s.getShiftStartMin());
-                    gc.set(Calendar.SECOND, 0);
-
-                    adjustmenttype = ("(Shift Start)");
-                    setAdjustedTimestamp(adjustTimestamp(gc, adjustmenttype));
-                }
-                
-                else if (ltime.isBefore(lunchStop.plusSeconds(1)) && ltime.isAfter(lunchStart.minusSeconds(1)))
-                {
-                    gc.set(Calendar.HOUR_OF_DAY, s.getLunchStopHour());
-                    gc.set(Calendar.MINUTE, s.getLunchStopMin());
-                    gc.set(Calendar.SECOND, 0);
-                        
-                    adjustmenttype = ("(Lunch Stop)");
-                    setAdjustedTimestamp(adjustTimestamp(gc, adjustmenttype));
-                }
-                
-                else if (ltime.isAfter(shiftStart) && ltime.isBefore(shiftStart.plusMinutes(15).plusSeconds(1)))
-                {
-                    if (ltime.isBefore(shiftStart.plusMinutes(5).plusSeconds(1)))
-                    {
-                        // Grace //
-                        int adjusted = grace(shiftStart, shiftStop);
-                        gc.set(Calendar.SECOND, 0);
-                        gc.set(Calendar.MINUTE, adjusted);
-                        
-                        setAdjustedTimestamp(adjustTimestamp(gc, adjustmenttype));
-                    }
-                    else
-                    {
-                        // Dock //
-                        gc.set(Calendar.SECOND, 0);
-                        gc.set(Calendar.MINUTE, s.getShiftStartMin());
-                        gc.add(Calendar.MINUTE, 15);
-                        
-                        adjustmenttype = ("(Shift Dock)");
-                        setAdjustedTimestamp(adjustTimestamp(gc, adjustmenttype));
-                    }
-                }
-                
-                else
-                {
-                    if (intervalReturn == 0)
-                    {
-                        // None //
-                        gc.set(Calendar.SECOND, 0);
-                        adjustmenttype = ("(None)");
-                        setAdjustedTimestamp(adjustTimestamp(gc, adjustmenttype));
+                if( punchTime.isAfter(lunchStart) && punchTime.isBefore(shiftStop) && (!weekend) ) {
+                  
+                    if( punchTime.isAfter(lunchStart) && punchTime.isBefore(lunchStop)) {
+                        adjustmenttype = "Lunch Stop";
+                        adjustedtimestamp = Timestamp2(punchTimeStamp, lunchStop);    
                     }
                     
-                    else
-                    {
-                        // Interval Round //
-                        int adjusted = intervalRound();
-                        gc.set(Calendar.SECOND, 0);
-                        gc.set (Calendar.MINUTE, adjusted);
-
-                        adjustmenttype = ("(Shift Start)");
-                        setAdjustedTimestamp(adjustTimestamp(gc, adjustmenttype));
-                    }
                 }
-                break;                      
+                
+                // If punch is clock in for shift start
+                
+                else if( punchTime.isBefore(lunchStart) && (!weekend) ) {
+                    
+                    //Before the shift start
+                    
+                    if( punchTime.isBefore(shiftStart) ) {
+                        
+                        int timeInterval = totalshiftStartMinutes - totalpunchTimeMinutes;
+                        int quotient = timeInterval/interval;
+                        int remainder = timeInterval%interval;
+                                           
+                        if(timeInterval <= interval) {
+                            adjustmenttype = "Shift Start";
+                            adjustedtimestamp = Timestamp2(punchTimeStamp, shiftStart);
+                        }
+                        else {
+                            adjustmenttype = "Interval Round";
+                            if(remainder <= 7) {
+                                totalpunchTimeMinutes = totalshiftStartMinutes - ((quotient)*interval);
+                                adjustedtimestamp = Timestamp1(punchTimeStamp, totalpunchTimeMinutes);
+                            }
+                            else {
+                                totalpunchTimeMinutes = totalshiftStartMinutes - ((quotient+1)*interval);
+                                adjustedtimestamp = Timestamp1(punchTimeStamp, totalpunchTimeMinutes);
+                            }
+                        }    
+
+                    }
+                    
+                    // After the shift start
+                    
+                    else if( punchTime.isAfter(shiftStart) ) {
+                    
+                        if( (totalpunchTimeMinutes - totalshiftStartMinutes) <= grace  ) {
+                            adjustmenttype = "Shift Start";
+                            adjustedtimestamp = Timestamp2(punchTimeStamp, shiftStart);
+                        }
+
+                        else if ( (totalpunchTimeMinutes - totalshiftStartMinutes) <= dock ) {
+                            adjustmenttype = "Shift Dock";
+                            totalshiftStartMinutes = totalshiftStartMinutes + dock;
+                            adjustedtimestamp = Timestamp1(punchTimeStamp, totalshiftStartMinutes);
+                        }
+
+                        else {
+                            adjustmenttype = "Interval Round";
+                            int timeInterval = totalpunchTimeMinutes - totalshiftStartMinutes;
+                            int quotient = timeInterval/interval;
+                            int remainder = timeInterval%interval;
+                            if(remainder <= 7) {
+                                totalshiftStartMinutes = totalshiftStartMinutes + (quotient*interval);
+                                adjustedtimestamp = Timestamp1(punchTimeStamp, totalshiftStartMinutes);
+                            }
+                            else {
+                                totalshiftStartMinutes = totalshiftStartMinutes + ((quotient+1)*interval);
+                                adjustedtimestamp = Timestamp1(punchTimeStamp, totalshiftStartMinutes);
+                            }                        
+                        }
+                        
+                    }
+                    
+                }
+            
+                else if(weekend) {
+                    
+                    if( punchTime.isBefore(shiftStart) ) {
+                        
+                        int timeInterval = totalshiftStartMinutes - totalpunchTimeMinutes;
+                        int quotient = timeInterval/interval;
+                        int remainder = timeInterval%interval;
+                                           
+                        if(timeInterval <= interval) {
+                            adjustmenttype = "Shift Start";
+                            adjustedtimestamp = Timestamp2(punchTimeStamp, shiftStart);
+                        }
+                        else {
+                            adjustmenttype = "Interval Round";
+                            if(remainder <= 7) {
+                                totalpunchTimeMinutes = totalshiftStartMinutes - ((quotient)*interval);
+                                adjustedtimestamp = Timestamp1(punchTimeStamp, totalpunchTimeMinutes);
+                            }
+                            else {
+                                totalpunchTimeMinutes = totalshiftStartMinutes - ((quotient+1)*interval);
+                                adjustedtimestamp = Timestamp1(punchTimeStamp, totalpunchTimeMinutes);
+                            }
+                        }    
+                        
+                    }
+                    
+                    else if( punchTime.isAfter(shiftStart) ) {
+                        
+                        if( (totalpunchTimeMinutes - totalshiftStartMinutes) <= grace ) {
+                            adjustmenttype = "Shift Start";
+                            adjustedtimestamp = Timestamp2(punchTimeStamp, shiftStart);
+                        }
+
+                        else if ( (totalpunchTimeMinutes - totalshiftStartMinutes) <= dock ) {
+                            adjustmenttype = "Shift Dock";
+                            totalshiftStartMinutes = totalshiftStartMinutes + dock;
+                            adjustedtimestamp = Timestamp1(punchTimeStamp, totalshiftStartMinutes);
+                        }
+
+                        else {
+                            adjustmenttype = "Interval Round";
+                            int timeInterval = totalpunchTimeMinutes - totalshiftStartMinutes;
+                            int quotient = timeInterval/interval;
+                            int remainder = timeInterval%interval;
+                            if(remainder <= 7) {
+                                totalshiftStartMinutes = totalshiftStartMinutes + (quotient*interval);
+                                adjustedtimestamp = Timestamp1(punchTimeStamp, totalshiftStartMinutes);
+                            }
+                            else {
+                                totalshiftStartMinutes = totalshiftStartMinutes + ((quotient+1)*interval);
+                                adjustedtimestamp = Timestamp1(punchTimeStamp, totalshiftStartMinutes);
+                            }                        
+                        }
+                        
+                    }
+                    
+                }
+
+                break;
+                
+                
+            case 2:
+                adjustmenttype = "Time Out";
+                adjustedtimestamp = Timestamp2(punchTimeStamp, shiftStop);
+                break;
+                
+            default:
+                System.out.println("ERROR");
+                               
         }
+        
+      }
+        
+        private Timestamp Timestamp1(LocalDateTime punch, int totalminutes) {
+        punch = punch.withHour(totalminutes/60);
+        punch = punch.withMinute(totalminutes%60);
+        punch = punch.withSecond(0);
+        Timestamp ts = Timestamp.valueOf(punch);
+        
+        return ts;
     }
-   
-               
+    
+        private Timestamp Timestamp2(LocalDateTime punch, LocalTime time) {
+        punch = punch.withHour(time.getHour());
+        punch = punch.withMinute(time.getMinute());
+        punch = punch.withSecond(0);
+        Timestamp ts = Timestamp.valueOf(punch);
+        
+        return ts;
+    }
+    
+      
+}
+
          
-    
-    
-       private int grace (LocalTime shiftStart, LocalTime shiftStop)
-    {
-        GregorianCalendar gc = new GregorianCalendar();
-        gc.setTimeInMillis(originaltimestamp);
-        
-        int p = punchtypeid;
-        int adjusted = 0;
-        
-        if ( p <= 0){
-            adjusted = shiftStop.getMinute();
-            adjustmenttype = ("(Shift Stop)");
-        }
-        if ( p >= 1){
-            adjusted = shiftStart.getMinute();
-            adjustmenttype = ("(Shift Start)");
-        }
-        
-        return adjusted;
-    }
-    
-    private int intervalRound ()
-    {
-        GregorianCalendar gc = new GregorianCalendar();
-        gc.setTimeInMillis(originaltimestamp);
-        
-        int minute = gc.get(Calendar.MINUTE);
-        int second = gc.get(Calendar.SECOND);
-        int adjusted = 0;
-        
-        if ( minute % 15 == 7){
-            if (second >= 30) {
-                adjusted = roundUp(minute, 15);   
-            }
-            else {
-                adjusted = roundDown(minute, 15);
-            }    
-        }
-        else if ( minute % 15 < 7.5){
-            adjusted = roundDown(minute, 15);    
-        }
-        else if ( minute % 15 >= 7.5){
-            adjusted = roundUp(minute, 15);
-        }
-        
-        adjustmenttype = ("(Interval Round)");
-        
-        return adjusted;
-    }
-
-    
-        private int roundDown(int a, int b) 
-    {
-        return a>= 0 ? (a/ b) * b : ((a - b + 1) / b) * b;
-    }
-    
-    private int roundUp(int a, int b) 
-    {
-        return a>= 0 ? ((a + b - 1) / b) * b : (a / b) * b;
-       
-}
-    
-}
-    
-    
-
-
