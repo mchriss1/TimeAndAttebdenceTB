@@ -87,7 +87,13 @@ public class Punch {
         return adjustedtimestamp;
     }
 
-     
+    public String getAdjustmenttype() {
+        return adjustmenttype;
+    }
+
+    
+    
+    
     public String printOriginalTimestamp(){
         StringBuilder s = new StringBuilder();
         GregorianCalendar gc = new GregorianCalendar();

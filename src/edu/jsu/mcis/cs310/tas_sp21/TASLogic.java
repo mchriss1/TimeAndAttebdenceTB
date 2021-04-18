@@ -1,6 +1,8 @@
 package edu.jsu.mcis.cs310.tas_sp21;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import org.json.simple.JSONValue;
 
  
 public class TASLogic {
@@ -64,54 +66,28 @@ public class TASLogic {
         
     }    
    
+        public static String getPunchListAsJSON(ArrayList<Punch> dailyPunchList){
+            
+        ArrayList<HashMap<String, String>> jsonData = new ArrayList<>();
+        
+        for(Punch p : dailyPunchList){
+            
+            HashMap<String, String> punchdata = new HashMap<>();
+            punchdata.put("id", String.valueOf(p.getId()));
+            punchdata.put("badgeid", p.getBadgeid());
+            punchdata.put("terminalid", String.valueOf(p.getTerminalid()));
+            punchdata.put("punchtypeid", String.valueOf(p.getPunchtypeid()));
+            punchdata.put("punchdata", p.getAdjustmenttype());
+            punchdata.put("originaltimestamp", Long.toString(p.getOriginaltimestamp()));
+            punchdata.put("adjustedtimestamp", Long.toString(p.getAdjustedTimeStamp().getTime()));
+            
+            jsonData.add(punchdata);
+            
+        }
+        
+        return JSONValue.toJSONString(jsonData);
+    }
      
+
       }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
